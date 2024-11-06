@@ -3,50 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useState, useEffect, useRef } from 'react';
 import { Text, ScrollView, Image, View, FlatList, Dimensions, TouchableOpacity } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import Cart from './Cart.js'
 import Toast from 'react-native-toast-message';
-
-
-const foodImages = [
-  require('../assets/Steak.jpg'),
-  require('../assets/Pizza.jpg'),
-  require('../assets/crackBurger.jpg'),
-  require('../assets/cream.jpg'),
-  require('../assets/Ramen.jpg'),
-];
-
-const foodItems = [
-    {
-      image: require('../assets/crackBurger.jpg'),
-      title: 'Healthy chicken protein burger',
-      oldprice: '45.000 đ',
-      price: '30.000 đ',
-      description: '390 kcal',
-      Evaluate: 5,
-      quantity: 10,
-    },
-    {
-      image: require('../assets/Pho.jpg'),
-      title: 'Pho Hehehehehe',
-      oldprice: '45.000 đ',
-      price: '30.000 đ',
-      description: '666 kcal',
-      Evaluate: 5,
-      quantity: 10,
-
-    },
-    {
-      image: require('../assets/roll.jpg'),
-      title: 'Vietnamese Rice Paper Rolls',
-      oldprice: '45.000 đ',
-      price: '30.000 đ',
-      description: '333 kcal',
-      Evaluate: 5,
-      quantity: 10,
-
-    }
-  ];
-  
 
 const { width, height } = Dimensions.get('window'); // Lấy chiều rộng và chiều cao màn hình
 
@@ -56,6 +13,12 @@ const Home = () => {
   const [favorites, setFavorites] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [addedToCart, setAddedToCart] = useState({});
+  const [foodImages, setFoodImages] = useState([]);
+  const [foodItems, setFoodItems] = useState([]);
+  const [randomItems, setRandomItems] = useState([]);
+  const [foodDataItems, setFoodDataItems] = useState([]);
+
+
 
   const flatListRef = useRef(null); // Tạo tham chiếu đến FlatList
 
@@ -63,16 +26,61 @@ const Home = () => {
     navigation.navigate('Cart', { cartItems }); // Điều hướng đến trang giỏ hàng
   };
 
+  const navigateToDetails = (item) => {
+    navigation.navigate('Details', { item, randomItems, favorites, setCartItems,cartItems,foodDataItems,setRandomItems });
+  };
+  
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/foods?limit=20');
+        const data = await response.json();
+
+  
+        // Kiểm tra xem fooddata có tồn tại không
+        if (data && data.data && Array.isArray(data.data.foods)) {
+          const fooddata = data.data.foods; 
+          setFoodDataItems(fooddata);
+          setFoodItems(fooddata.slice(0, 20));
+          // setFoodImages(fooddata.slice(0, 5).map(item => item.image));
+          setFoodImages(fooddata.sort(() => 0.5 - Math.random()).slice(0, 5)); 
+          setRandomItems(fooddata.sort(() => 0.5 - Math.random()).slice(0, 8)); // Get 8 random items
+
+          // .filter(food => food.id !== item.id) // Loại bỏ món ăn đã được chọn
+          // .sort(() => 0.5 - Math.random()) // Xáo trộn danh sách
+          // .slice(0, 8); // Lấy 8 món ăn ngẫu nhiên
+        } else {
+          console.error('Food data is undefined or not an array:', data.data.foods);
+        }
+      } catch (error) {
+        console.error('Error fetching food data:', error);
+      }
+    };
+  
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+  console.log("Random Items:", randomItems);
+
+}, [randomItems]); // Theo dõi khi randomfoodItems thay đổi
+  
+  
+
   // Tự động chuyển hình ảnh mỗi 5 giây
   useEffect(() => {
-    const interval = setInterval(() => {
-      const nextIndex = (currentIndex + 1) % foodImages.length;
-      setCurrentIndex(nextIndex);
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-    }, 5000); // 5 giây
+    if (foodImages.length > 0) { // Kiểm tra nếu có hình ảnh
+      const interval = setInterval(() => {
+        const nextIndex = (currentIndex + 1) % foodImages.length;
+        setCurrentIndex(nextIndex);
+        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      }, 5000); // 5 giây
 
-    return () => clearInterval(interval); // Xóa bộ đếm thời gian khi component bị hủy
-  }, [currentIndex]);
+      return () => clearInterval(interval); // Xóa bộ đếm thời gian khi component bị hủy
+    }
+  }, [currentIndex, foodImages]); // Thêm foodImages vào dependency
 
   // Hàm xử lý khi nhấn vào các chấm
   const handleDotPress = (index) => {
@@ -82,17 +90,17 @@ const Home = () => {
 
   // Hàm render từng hình ảnh
   const renderItem = ({ item }) => (
-    <TouchableOpacity>
-    <Image 
-      source={item} 
-      style={{ 
-        width: width * 0.9, // Giảm chiều rộng hình ảnh xuống 90%
-        height: height * 0.25, // Chiều cao hình ảnh bằng 25% chiều cao màn hình
-        marginHorizontal: width * 0.05, // Margin 5% mỗi bên
-        borderRadius: 10, // Bo góc cho hình ảnh
-      }} 
-      resizeMode="cover" 
-    />
+    <TouchableOpacity onPress={() => navigateToDetails(item)}>
+      <Image 
+        source={{ uri: item.image }}
+        style={{ 
+          width: width * 0.9,
+          height: height * 0.25,
+          marginHorizontal: width * 0.05,
+          borderRadius: 10,
+        }} 
+        resizeMode="cover" 
+      />
     </TouchableOpacity>
   );
 
@@ -101,7 +109,7 @@ const Home = () => {
         if (prevFavorites.includes(item)) {
             Toast.show({
                 text1: 'Removed from Favorites',
-                text2: `${item.title} has been removed from your favorites.`,
+                text2: `${item.name} has been removed from your favorites.`,
                 position: 'bottom',
                 visibilityTime: 2000,
                 autoHide: true,
@@ -110,7 +118,7 @@ const Home = () => {
         } else {
             Toast.show({
                 text1: 'Added to Favorites',
-                text2: `${item.title} has been added to your favorites!`,
+                text2: `${item.name} has been added to your favorites!`,
                 position: 'bottom',
                 visibilityTime: 2000,
                 autoHide: true,
@@ -123,61 +131,64 @@ const Home = () => {
 
   const addToCart = (item) => {
     setCartItems((prevItems) => [...prevItems, item]); // Thêm món ăn vào giỏ hàng
-    setAddedToCart((prev) => ({ ...prev, [item.title]: true })); // Đánh dấu món ăn đã được thêm
+    setAddedToCart((prev) => ({ ...prev, [item.name]: true })); // Đánh dấu món ăn đã được thêm
     Toast.show({
       text1: 'Added to Cart',
-      text2: `${item.title} has been added to your cart!`,
+      text2: `${item.name} has been added to your cart!`,
       position: 'bottom',
       visibilityTime: 2000,
       autoHide: true,
     });
   };
   
-  const renderFoodItem = (item) => (
-    <View style={{ marginTop: '5%' }}>
-      <TouchableOpacity onPress={() => navigation.navigate('Details', { item, favorites, setCartItems })}>
-        <Image 
-          source={item.image} 
-          style={{ width: width * 0.9, height: width * 0.36, marginHorizontal: width * 0.05, borderRadius: 10 }} 
-          resizeMode="cover" 
-        />
-        <View style={{ paddingLeft: '5%' ,justifyContent:'center'}}>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', marginLeft: '5%' }}>{item.title}</Text>
-        </View>
-        <View style={{ flexDirection: 'row', paddingLeft: '5%' ,justifyContent:'center'}}>
-          <Text style={{ textDecorationLine: 'line-through', fontSize: 18, fontWeight: 400, marginRight: '5%' }}>
-            {item.oldprice}
-          </Text>
-          <Text style={{ marginLeft: '5%', fontWeight: 'bold', fontSize: 18 }}>{item.price}</Text>
-          <View style={{ flexDirection: 'row', paddingLeft: '5%' ,justifyContent:'center'}}>
-            <Text style={{ marginLeft: '5%', fontWeight: 'bold', fontSize: 18 }}>{item.Evaluate}</Text>
-            <AntDesign name='star' color='yellow' size={24}></AntDesign>
+  const renderFoodItem = (item) => {
+    return (
+      <View style={{ marginTop: '5%', paddingHorizontal: '5%' }}>
+        <TouchableOpacity onPress={() => navigateToDetails(item)}>
+          <Image 
+            source={{ uri: item.image }} 
+            style={{ width: width * 0.9, height: width * 0.4, borderRadius: 15 }} 
+            resizeMode="cover" 
+          />
+          <View style={{ paddingVertical: 5 }}>
+            <Text style={{ fontSize: 22, fontWeight: 'bold' }}>{item.name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ textDecorationLine: 'line-through', fontSize: 18, color: '#888', marginRight: 5 }}>
+                  {item.oldprice}
+                </Text>
+                <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#A52A2A' }}>{item.price}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {/* <Text style={{ fontWeight: 'bold', fontSize: 18 }}>{item.Evaluate}</Text>
+                <AntDesign name='star' color='yellow' size={20} /> */}
+                  <TouchableOpacity onPress={() => toggleFavorite(item)}>
+                <AntDesign 
+                  name={favorites.includes(item) ? 'heart' : 'hearto'} 
+                  color={favorites.includes(item) ? 'red' : 'grey'} 
+                  size={24} 
+                  style={{ marginRight: 15 }} 
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => addToCart(item)}>
+                <AntDesign 
+                  name='shoppingcart' 
+                  size={24} 
+                  color={addedToCart[item.name] ? 'green' : 'black'} 
+                />
+              </TouchableOpacity>
+              </View>
+            </View>
           </View>
-          <TouchableOpacity onPress={() => toggleFavorite(item)}>
-            <AntDesign 
-              name={favorites.includes(item) ? 'heart' : 'hearto'} 
-              color={favorites.includes(item) ? 'red' : 'grey'} 
-              size={24} 
-              style={{ marginLeft: 8 }} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => addToCart(item)}>
-            <AntDesign 
-              name='shoppingcart' 
-              size={24} 
-              style={{ marginLeft: 8, color: addedToCart[item.title] ? 'green' : 'black' }} // Đổi màu khi đã thêm vào giỏ hàng
-            />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+        </TouchableOpacity>
+      </View>
+    );
+  };
   
-
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={{ flex: 1 ,paddingBottom: 88}}>
-        {/* Phần đầu, thay đổi chiều rộng và chiều cao theo chiều rộng màn hình */}
+        {/* Phần đầu */}
         <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', padding: 16, width: width }}>
           <TouchableOpacity>
             <Image source={require('../assets/logo_canteen.png')} style={{ width: width * 0.25, height: width * 0.25 }} />
@@ -192,10 +203,10 @@ const Home = () => {
             )}/>} 
           />
           <TouchableOpacity onPress={handleCartPress}>
-            <AntDesign name='shoppingcart' size={28} style={{ marginLeft: 8 }}/>
+            <AntDesign name='shoppingcart' size={28} style={{ marginLeft: 8 }} />
           </TouchableOpacity>
         </View>
-
+  
         {/* Thanh trượt hình ảnh */}
         <FlatList
           data={foodImages}
@@ -204,9 +215,9 @@ const Home = () => {
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          scrollEnabled={false} // Vô hiệu hóa cuộn tay vì tự động chuyển
-          ref={flatListRef} // Đặt tham chiếu cho FlatList
-          getItemLayout={(data, index) => ({ length: width * 0.9 + width * 0.1, offset: (width * 0.9 + width * 0.1) * index, index })} // Cải thiện hiệu suất cuộn
+          scrollEnabled={false} 
+          ref={flatListRef} 
+          getItemLayout={(data, index) => ({ length: width * 0.9 + width * 0.1, offset: (width * 0.9 + width * 0.1) * index, index })}
         />
 
         {/* Chấm điều hướng */}
@@ -218,16 +229,15 @@ const Home = () => {
                 height: 18,
                 width: 18,
                 borderRadius: 9,
-                backgroundColor: currentIndex === index ? '#A52A2A' : '#ccc', // Chấm đang hoạt động có màu đậm hơn
+                backgroundColor: currentIndex === index ? '#A52A2A' : '#ccc',
                 marginHorizontal: 6,
               }}
-              onPress={() => handleDotPress(index)} // Chuyển hình ảnh khi chạm vào chấm
+              onPress={() => handleDotPress(index)} 
             />
           ))}
         </View>
-
-       {/* Menu */}
-        <View>
+         {/* Menu */}
+         <View>
           <Text style={{ fontSize: 22, fontWeight: 'bold', marginLeft: '5%', marginTop: '2%' }}>Menu</Text>
           <ScrollView horizontal style={{ marginTop: '2%', paddingVertical: 10 }}>
             <View style={{ flexDirection: 'row', paddingLeft: '5%' }}>
@@ -263,7 +273,6 @@ const Home = () => {
           </ScrollView>
         </View>
         <Toast ref={(ref) => Toast.setRef(ref)} />
-
 
         {/* Recommended */}
         <View>

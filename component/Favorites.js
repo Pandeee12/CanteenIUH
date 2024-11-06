@@ -15,7 +15,11 @@ const Favorites = ({ route, navigation }) => {
           style={{ width: '90%', height: 150, borderRadius: 10 }} 
           resizeMode="cover" 
         />
-        <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{item.title}</Text>
+        <View style={{flexDirection: 'row',justifyContent:'space-around'}}>
+          <Text style={{ fontSize: 20, fontWeight: 'bold' }}>{item.name}</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#A52A2A' }}>{item.price}</Text>
+        </View>
+
       </TouchableOpacity>
     </View>
   );

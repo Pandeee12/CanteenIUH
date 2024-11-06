@@ -8,7 +8,7 @@ const Cart = ({ route, navigation }) => {
   const removeItem = (itemToRemove) => {
     Alert.alert(
       'Xác nhận',
-      `Bạn có chắc chắn muốn xóa ${itemToRemove.title} khỏi giỏ hàng?`,
+      `Bạn có chắc chắn muốn xóa ${itemToRemove.id} khỏi giỏ hàng?`,
       [
         {
           text: 'Hủy',
@@ -17,7 +17,7 @@ const Cart = ({ route, navigation }) => {
         {
           text: 'Xóa',
           onPress: () => {
-            const updatedItems = items.filter(item => item.title !== itemToRemove.title);
+            const updatedItems = items.filter(item => item.id !== itemToRemove.id);
             setItems(updatedItems); // Cập nhật giỏ hàng trong state
             updateCart(updatedItems); // Cập nhật giỏ hàng trong component cha
           },
@@ -50,7 +50,7 @@ const Cart = ({ route, navigation }) => {
       <FlatList
         data={items} 
         renderItem={renderCartItem}
-        keyExtractor={(item) => item.title} 
+        keyExtractor={(item) => item.name} 
       />
       <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
         <Text style={styles.checkoutButtonText}>Thanh toán</Text>

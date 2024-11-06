@@ -1,105 +1,99 @@
 import { AntDesign, MaterialCommunityIcons, EvilIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import {showToast} from './Toast.js'
+import Toast from 'react-native-toast-message';
+
 
 const Details = ({ route }) => {
     const navigation = useNavigation();
-    const { item, favorites: initialFavorites,setCartItems } = route.params; // Lấy item từ params
-    const [favorites, setFavorites] = useState(initialFavorites); // State để theo dõi danh sách yêu thích
+    const { item, randomItems: initialRandomItems, favorites: initialFavorites, setCartItems,cartItems,foodDataItems,setRandomItems } = route.params;
+    const [favorites, setFavorites] = useState(initialFavorites);
+    const [addedToCart, setAddedToCart] = useState({});
+    const [randomItems, setRandomItemsState] = useState(initialRandomItems);
+    const [randomList,setRandomList] = useState({});
 
-    const addToCart = () => {
+
+    const addToCart = (item) => {
         setCartItems((prevItems) => [...prevItems, item]); // Thêm món ăn vào giỏ hàng
-        // Có thể hiển thị thông báo thêm thành công
+        setAddedToCart((prev) => ({ ...prev, [item.name]: true })); // Đánh dấu món ăn đã được thêm
+        showToast({
+            title: 'Added to Cart',
+            body: `${item.name} has been added to your cart!`
+        });
       };
 
-    const toggleFavorite = (id) => {
-        if (favorites.includes(id)) {
-            // Nếu đã có trong danh sách yêu thích, xóa nó
-            setFavorites(favorites.filter(favId => favId !== id));
-            console.log(`${item.title} removed from favorites`);
+      useEffect(() => {
+        if (foodDataItems && foodDataItems.length > 0) {
+            console.log("Food data:", foodDataItems); 
+            const randomItems = foodDataItems.sort(() => 0.5 - Math.random()).slice(0, 8);
+            setRandomItemsState(randomItems); 
         } else {
-            // Nếu chưa có, thêm vào danh sách yêu thích
-            setFavorites([...favorites, id]);
-            console.log(`${item.title} added to favorites`);
+            console.log("Food data is not available or empty");
+        }
+    }, [foodDataItems]); 
+    
+    
+    
+    const navigateToDetails = (item) => {
+        navigation.navigate('Details', { item, randomItems, favorites, setCartItems });
+      };
+
+      
+
+      const handleCartPress = () => {
+        navigation.navigate('Cart', cartItems ); 
+    };
+    
+    const toggleFavorite = () => {
+        if (favorites.includes(item.id)) {
+            setFavorites(favorites.filter(favId => favId !== item.id));
+            console.log(`${item.name} removed from favorites`);
+        } else {
+            setFavorites([...favorites, item.id]);
+            console.log(`${item.name} added to favorites`);
         }
     };
-    const recommendedItems = [
-        {   
-            id: 1,
-            image: require('../assets/crackBurger.jpg'),
-            title: 'Healthy chicken protein burger',
-            oldprice: '45.000 đ',
-            price: '30.000 đ',
-            description: '390 kcal',
-            Evaluate: 5,
-        },
-        {
-            id: 2,
-            image: require('../assets/Pho.jpg'),
-            title: 'Pho Hehehehehe',
-            oldprice: '45.000 đ',
-            price: '30.000 đ',
-            description: '666 kcal',
-            Evaluate: 5,
-        },
-        {
-            id: 3,
-            image: require('../assets/roll.jpg'),
-            title: 'Vietnamese Rice Paper Rolls',
-            oldprice: '45.000 đ',
-            price: '30.000 đ',
-            description: '333 kcal',
-            Evaluate: 5,
-        },
-        {
-            id: 4,
-            image: require('../assets/Steak.jpg'), 
-            title: 'Steak',
-            oldprice: '50.000 đ',
-            price: '35.000 đ',
-            description: '888 kcal',
-            Evaluate: 5,
-        },
-        {
-            id: 5,
-            image: require('../assets/Ramen.jpg'), 
-            title: 'Ramen',
-            oldprice: '60.000 đ',
-            price: '45.000 đ',
-            description: '500 kcal',
-            Evaluate: 5,
-        },
-    ];
+
     const renderRecommendedItem = ({ item }) => (
         <View style={styles.recommendedItem}>
-                <TouchableOpacity style={{flexDirection: 'row',alignItems:'center'}}>
-                    <Image source={item.image} style={styles.recommendedImage} />
-                    <View style={styles.recommendedInfo}>
-                        <Text style={styles.recommendedTitle}>{item.title}</Text>
-                        <Text style={styles.recommendedPrice}>{item.price}</Text>
-                    </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.addToCartButton,{marginTop:'8%'}]} 
-                    onPress={addToCart}
-                >
-                <Ionicons name='add' size={24} color='#fff' />
-                </TouchableOpacity> 
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center' }} 
+              onPress={() => navigateToDetails(item)}>
+                <Image source={{ uri: item.image }} style={styles.recommendedImage} />
+                <View style={styles.recommendedInfo}>
+                    <Text style={styles.recommendedTitle}>{item.name}</Text>
+                    <Text style={styles.recommendedPrice}>{item.price}</Text>
+                </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={[styles.addToCartButton, { marginTop: '8%' }]}
+                onPress={() => addToCart(item)}  >
+                <Ionicons name='add' size={24}                   
+                color={addedToCart[item.name] ? 'green' : 'black'} 
+                />
+            </TouchableOpacity>
         </View>
     );
-    
 
     return (
         <View style={{ flex: 1 }}>
             <ScrollView style={styles.container}>
                 <View style={styles.imageContainer}>
-                    <Image source={item.image} style={styles.image} resizeMode="cover" />
+                    <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
                     <View style={styles.overlay}>
-                        <Text style={styles.title}>{item.title}</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={styles.title}>{item.name}</Text>
+                        <TouchableOpacity
+                            style={[styles.addToCartButton, { marginTop: -10 }]}
+                            onPress={() => addToCart(item)}  
+                        >
+                            <Ionicons name="add" size={24} color={addedToCart[item.name] ? 'green' : 'black'} />
+                        </TouchableOpacity>
+                    </View>
                         <View style={styles.ratingContainer}>
-                            <Text style={styles.evaluate}>{item.Evaluate}</Text>
-                            <AntDesign name='star' color='yellow' size={24} />
+                            {/* <Text style={styles.evaluate}>{item.Evaluate}</Text>
+                            <AntDesign name='star' color='yellow' size={24} /> */}
                         </View>
                         <Text style={styles.description}>{item.description}</Text>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -107,16 +101,17 @@ const Details = ({ route }) => {
                             <Text style={styles.price}>{item.price}</Text>
                         </View>
                     </View>
-                    <TouchableOpacity 
-                        style={styles.addToCartButton} 
-                        onPress={() => console.log('Added to Cart')}
+                    <TouchableOpacity
+                        style={styles.addToCartButton}
+                        onPress={handleCartPress}
                     >
-                        <AntDesign name='shoppingcart' size={24} color='#fff' />
+                        <AntDesign name='shoppingcart' size={24}                 
+                        color={addedToCart[item.name] ? 'green' : 'black'} />
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity 
-                    style={styles.orderButton} 
+                <TouchableOpacity
+                    style={styles.orderButton}
                     onPress={() => console.log('Order placed!')}
                 >
                     <Text style={styles.orderButtonText}>Order Now</Text>
@@ -125,38 +120,55 @@ const Details = ({ route }) => {
 
                 <Text style={styles.recommendedHeader}>More</Text>
                 <FlatList
-                    data={recommendedItems}
+                    data={randomItems}
                     renderItem={renderRecommendedItem}
-                    keyExtractor={item => item.id.toString()} // Chuyển đổi id thành chuỗi
-                    horizontal={false} //false = ngang
+                    horizontal={false}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.recommendedList}
+                    ListEmptyComponent={<Text>No recommended items available.</Text>}
                 />
 
+              
             </ScrollView>
+                {/* Footer Menu */}
+                <View style={{ 
+                        backgroundColor: '#f8f8f8', 
+                        paddingVertical: 10, 
+                        position: 'fixed', 
+                        bottom: 0, 
+                        left: 0, 
+                        right: 0, 
+                        borderTopWidth: 1, 
+                        borderTopColor: '#ccc'
+                    }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-evenly'}}>
+                <TouchableOpacity style={{ alignItems: 'center', marginRight: 20 }}>
+                    <MaterialCommunityIcons name='silverware-fork-knife' size={30} color='#A52A2A'
+                    onPress={() => navigation.navigate('Favorites', { favorites })}></MaterialCommunityIcons>
+                    <Text style={{ fontSize: 16, fontWeight: '400' }}>Favorites</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ alignItems: 'center', marginRight: 20 }}
+                     onPress={() => navigation.navigate('Home')}
+                >
+                    <AntDesign name='home' size={28} color='#A52A2A' />
+                    <Text style={{ fontSize: 16, fontWeight: '400' }}>Home</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ alignItems: 'center', marginRight: 20 }}>
+                    <EvilIcons name='bell' size={30} color='#A52A2A' />
+                    <Text style={{ fontSize: 16, fontWeight: '400' }}>Notification</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ alignItems: 'center', marginRight: 20 }}>
+                    <AntDesign name='user' size={28} color='#A52A2A' />
+                    <Text style={{ fontSize: 16, fontWeight: '400' }}>Profile</Text>
+                </TouchableOpacity>
+                {/* <TouchableOpacity style={{ alignItems: 'center' }}>
+                    <AntDesign name='setting' size={28} color='#A52A2A' />
+                    <Text style={{ fontSize: 16, fontWeight: '400' }}>Setting</Text>
+                </TouchableOpacity> */}
+          </View>
+      </View>
+      <Toast ref={(ref) => Toast.setRef(ref)} />
 
-            {/* Footer Menu */}
-            <View style={styles.footer}>
-                <View style={styles.footerContent}>
-                    <TouchableOpacity style={styles.footerButton}>
-                        <MaterialCommunityIcons name='silverware-fork-knife' size={30} color='#A52A2A'
-                        onPress={() => navigation.navigate('Favorites', { favorites })}></MaterialCommunityIcons>
-                        <Text style={styles.footerButtonText}>Favorites</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.footerButton} onPress={() => navigation.navigate('Home')}>
-                        <AntDesign name='home' size={28} color='#A52A2A' />
-                        <Text style={styles.footerButtonText}>Home</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.footerButton}>
-                        <EvilIcons name='bell' size={28} color='#A52A2A' />
-                        <Text style={styles.footerButtonText}>Notification</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.footerButton}>
-                        <AntDesign name='user' size={28} color='#A52A2A' />
-                        <Text style={styles.footerButtonText}>Profile</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
         </View>
     );
 };
@@ -164,6 +176,7 @@ const Details = ({ route }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#fff', // Màu nền sáng
         paddingBottom: 88,
     },
     imageContainer: {
@@ -172,17 +185,19 @@ const styles = StyleSheet.create({
     image: {
         width: '100%',
         height: 300,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
     },
     overlay: {
         position: 'absolute',
-        bottom: 0, // Align to bottom
-        left: '6%', // Center horizontally (12% total width difference, 6% from each side)
-        width: '88%', 
-        height: '66%', // Optional: you can keep it at one-third of the image height or adjust as needed
-        backgroundColor: '#D9D9D9',
+        bottom: 0,
+        left: '6%',
+        width: '88%',
+        height: '60%',
+        backgroundColor: 'rgba(217, 217, 217, 0.9)', // Đổ bóng mờ
         padding: 20,
-        borderRadius: 8, // Fixed typo here
-        justifyContent: 'flex-end', // Align content at the bottom
+        borderRadius: 12,
+        justifyContent: 'flex-end',
     },
     addToCartButton: {
         position: 'absolute',
@@ -190,45 +205,40 @@ const styles = StyleSheet.create({
         right: 10,
         backgroundColor: '#A52A2A',
         padding: 10,
-        borderRadius: 40,
+        borderRadius: 50,
+        elevation: 2,
     },
     title: {
         fontSize: 28,
         fontWeight: 'bold',
+        color: '#333',
     },
     description: {
-        fontSize: 22,
-        fontWeight: '600',
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#555',
         marginVertical: 5,
     },
     price: {
         fontSize: 22,
         fontWeight: 'bold',
+        color: '#A52A2A',
     },
     oldprice: {
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: '400',
         textDecorationLine: 'line-through',
-    },
-    ratingContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 5,
-    },
-    evaluate: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginRight: 5,
+        color: '#888',
     },
     orderButton: {
         backgroundColor: '#A52A2A',
         padding: 15,
-        borderRadius: 5,
+        borderRadius: 8,
         alignItems: 'center',
-        marginTop: '5%',
+        marginVertical: 15,
         marginHorizontal: 20,
         flexDirection: 'row',
-        justifyContent: 'center', // Center the content horizontally
+        justifyContent: 'center',
     },
     orderButtonText: {
         color: '#fff',
@@ -240,10 +250,13 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderTopWidth: 1,
         borderTopColor: '#ccc',
+        position: 'absolute',
+        bottom: 0,
+        width: '100%',
     },
     footerContent: {
         flexDirection: 'row',
-        justifyContent: 'space-evenly', 
+        justifyContent: 'space-evenly',
     },
     footerButton: {
         alignItems: 'center',
@@ -257,21 +270,23 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginVertical: 10,
         marginLeft: 20,
+        color: '#333',
     },
     recommendedList: {
-        paddingLeft: 20,
-        paddingRight: 10,
+        paddingHorizontal: 20,
     },
     recommendedItem: {
-        backgroundColor: '#f8f8f8',
+        backgroundColor: '#fff',
         borderRadius: 10,
         padding: 10,
-        marginRight: 10,
-        elevation: 2, // Add shadow for Android
-        shadowColor: '#000', // Shadow for iOS
+        marginBottom: 10,
+        elevation: 3,
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 2,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     recommendedImage: {
         width: 80,
@@ -279,18 +294,20 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     recommendedInfo: {
-        flex: 1,
         marginLeft: 10,
+        flex: 1,
     },
     recommendedTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#333',
     },
     recommendedPrice: {
-        fontSize: 16,
-        fontWeight: '400',
-        marginTop: 5,
+        fontSize: 14,
+        color: '#A52A2A',
+        fontWeight: 'bold',
     },
 });
+
 
 export default Details;
